@@ -48,7 +48,10 @@ float _estimate_vmax(int64_t *bins, int64_t num_bins, float r_scale) {
         if (vcirc > vmax)
             vmax = vcirc;
     }
-    return sqrt(Gc * vmax * PARTICLE_MASS / SCALE_NOW);
+
+    float scale_now = LIGHTCONE ? scale_dx : SCALE_NOW;
+
+    return sqrt(Gc * vmax * PARTICLE_MASS / scale_now);
 }
 
 void estimate_vmax(struct halo *h, const struct HaloInfo *haloinfo) {
@@ -57,9 +60,11 @@ void estimate_vmax(struct halo *h, const struct HaloInfo *haloinfo) {
     if (!(h->child_r > 0))
         return;
     float r_scale = ((double)VMAX_BINS) / h->child_r;
+    float scale_now = LIGHTCONE ? scale_dx : SCALE_NOW;
+
     _populate_mass_bins(h, h, bins, VMAX_BINS, r_scale, 0, haloinfo);
     h->vmax   = _estimate_vmax(bins, VMAX_BINS, r_scale);
-    h->vmax_r = sqrt(SCALE_NOW) * _estimate_vmax(bins, VMAX_BINS, r_scale) *
+    h->vmax_r = sqrt(scale_now) * _estimate_vmax(bins, VMAX_BINS, r_scale) *
                 dynamical_time;
 }
 
@@ -337,7 +342,10 @@ float estimate_total_energy(int64_t total_p, float *energy_ratio) {
     *energy_ratio = 0;
     if (total_phi)
         *energy_ratio = (ke / total_phi);
-    return ((ke - total_phi) * PARTICLE_MASS * Gc / SCALE_NOW);
+
+    float scale_now = LIGHTCONE ? scale_dx : SCALE_NOW;
+
+    return ((ke - total_phi) * PARTICLE_MASS * Gc / scale_now);
 }
 
 void _calc_pseudo_evolution_masses(struct halo *h, int64_t total_p,
@@ -377,13 +385,16 @@ void _calc_additional_halo_props(struct halo *h, int64_t total_p,
                                  int64_t bound) {
     int64_t j, k, part_mdelta = 0, num_part = 0, np_alt[4] = {0}, np_vir = 0,
                   dens_tot = 0, parts_avgd = 0, num_part_half = 0;
+
+    float scale_now = LIGHTCONE ? scale_dx : SCALE_NOW;
+
     double dens_thresh = particle_thresh_dens[0] * (4.0 * M_PI / 3.0);
     double d1          = particle_thresh_dens[1] * (4.0 * M_PI / 3.0);
     double d2          = particle_thresh_dens[2] * (4.0 * M_PI / 3.0);
     double d3          = particle_thresh_dens[3] * (4.0 * M_PI / 3.0);
     double d4          = particle_thresh_dens[4] * (4.0 * M_PI / 3.0);
     double rvir_thresh = particle_rvir_dens * (4.0 * M_PI / 3.0);
-    double vmax_conv   = PARTICLE_MASS / SCALE_NOW;
+    double vmax_conv   = PARTICLE_MASS / scale_now;
     double r, circ_v, vmax = 0, rvmax = 0, L[3] = {0}, Jh, m = 0, ds;
     double vrms[3] = {0}, xavg[3] = {0}, vavg[3] = {0}, mdiff;
     double cur_dens, rvir, mvir;
@@ -481,18 +492,18 @@ void _calc_additional_halo_props(struct halo *h, int64_t total_p,
 
         rvir = cbrt((3.0 / (4.0 * M_PI)) * np_vir / particle_rvir_dens) * 1e3;
         mvir = np_vir * PARTICLE_MASS;
-        calc_scale_radius(h, m, h->r, h->vmax, h->rvmax, SCALE_NOW, po,
+        calc_scale_radius(h, m, h->r, h->vmax, h->rvmax, scale_now, po,
                           dens_tot, bound);
         for (j = 0; j < 3; j++)
-            h->J[j] = PARTICLE_MASS * SCALE_NOW * L[j];
+            h->J[j] = PARTICLE_MASS * scale_now * L[j];
         h->energy = estimate_total_energy(dens_tot, &(h->kin_to_pot));
-        Jh        = PARTICLE_MASS * SCALE_NOW *
+        Jh        = PARTICLE_MASS * scale_now *
              sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
         h->spin =
             (m > 0) ? (Jh * sqrt(fabs(h->energy)) / (Gc * pow(m, 2.5))) : 0;
         h->bullock_spin =
             (m > 0)
-                ? (Jh / (mvir * sqrt(2.0 * Gc * mvir * rvir * SCALE_NOW / 1e3)))
+                ? (Jh / (mvir * sqrt(2.0 * Gc * mvir * rvir * scale_now / 1e3)))
                 : 0;
         _calc_pseudo_evolution_masses(h, total_p, bound);
     }
@@ -506,6 +517,9 @@ void calc_additional_halo_props(struct halo           *h,
 
     if (LIGHTCONE)
         lightcone_set_scale(h->pos);
+
+    float scale_now = LIGHTCONE ? scale_dx : SCALE_NOW;
+
     dens_thresh = particle_thresh_dens[0] * (4.0 * M_PI / 3.0);
     if (h->num_p < 1)
         return;
@@ -531,9 +545,9 @@ void calc_additional_halo_props(struct halo           *h,
     qsort(po, total_p, sizeof(struct potential), dist_compare);
     calculate_corevel(h, po, total_p);
     if (haloinfo->extra_info[h - haloinfo->halos].sub_of > -1)
-        compute_kinetic_energy(po, total_p, h->corevel, h->pos);
+        compute_kinetic_energy(po, total_p, h->corevel, h->pos, scale_now);
     else
-        compute_kinetic_energy(po, total_p, h->bulkvel, h->pos);
+        compute_kinetic_energy(po, total_p, h->bulkvel, h->pos, scale_now);
 
     _calc_additional_halo_props(h, total_p, 0);
     _calc_additional_halo_props(h, total_p, 1);

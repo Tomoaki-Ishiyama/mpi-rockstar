@@ -4,6 +4,7 @@
 #include <string.h>
 #include <strings.h>
 #include <inttypes.h>
+#include <assert.h>
 #include "rockstar.h"
 #include "halo.h"
 #include "fof.h"
@@ -55,10 +56,11 @@ int64_t  num_alloced_halo_ids = 0;
 #pragma omp threadprivate(growing_halos, num_growing_halos, num_alloc_gh)
 #pragma omp threadprivate(halo_ids, num_alloced_halo_ids)
 
-double particle_thresh_dens[5] = {0}, particle_rvir_dens = 0,
-       particle_rvir_dens_z0 = 0;
+double  particle_thresh_dens[5] = {0};
+double  particle_rvir_dens = 0, particle_rvir_dens_z0 = 0;
 int64_t min_dens_index       = 0;
 double  dynamical_time       = 0;
+float   scale_dx             = 1;
 
 void init_haloinfo(struct HaloInfo *haloinfo) {
     haloinfo->halos      = NULL;
@@ -98,10 +100,11 @@ double vir_density(double a) {
 }
 
 float _calc_mass_definition(char **md) {
+    float   scale_now       = LIGHTCONE ? scale_dx : SCALE_NOW;
     int64_t length          = strlen(*md);
     char    last_char       = (length) ? md[0][length - 1] : 0;
-    float   matter_fraction = (Om / pow(SCALE_NOW, 3)) /
-                            pow(hubble_scaling(1.0 / SCALE_NOW - 1.0), 2.0);
+    float   matter_fraction = (Om / pow(scale_now, 3)) /
+                            pow(hubble_scaling(1.0 / scale_now - 1.0), 2.0);
     float cons = Om * CRITICAL_DENSITY / PARTICLE_MASS; // background density
     char *mass = *md;
     float thresh_dens;
@@ -115,7 +118,7 @@ float _calc_mass_definition(char **md) {
     else {
         if (strcasecmp(*md, "vir"))
             *md = "vir";
-        thresh_dens = vir_density(SCALE_NOW) * cons;
+        thresh_dens = vir_density(scale_now) * cons;
     }
     particle_rvir_dens_z0 = vir_density(1.0) * cons;
     return thresh_dens;
@@ -146,7 +149,15 @@ void lightcone_set_scale(float *pos) {
         dx += ds * ds;
     }
     z         = comoving_distance_h_to_redshift(sqrt(dx));
+
+#if 0
+    // SCALE_NOW is a global variable that is not thread-private.
     SCALE_NOW = scale_factor(z);
+#else
+    // scale_dx is a global variable that is not thread-private.
+    scale_dx = scale_factor(z);
+#endif
+
     calc_mass_definition();
 }
 

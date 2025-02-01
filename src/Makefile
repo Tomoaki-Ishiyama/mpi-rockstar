@@ -17,7 +17,7 @@ endif
 ifeq ($(compiler), fujitsu)
 CC = mpifccpx
 CXX = mpiFCCpx
-OFLAGS = -Ofast -fopenmp -Nclang -I/usr/include/tirpc
+OFLAGS = -Nclang -Ofast -fopenmp # -I/usr/include/tirpc
 endif
 
 CFLAGS   = -m64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_DEFAULT_SOURCE -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200809L -D_SVID_SOURCE -D_DARWIN_C_SOURCE -Wall -fno-math-errno -fPIC -std=c99 
@@ -43,7 +43,7 @@ FIND_PARENTS = find_parents.o io/stringparse.o check_syscalls.o
 	$(CXX) $(CXXFLAGS) $(EXTRA_FLAGS) -c -o $@ $<
 
 .c.o: 
-	$(CC) $(CFLAGS) $(EXTRA_FLAGS) -c -o $@ $< 
+	$(CC) $(CFLAGS) $(EXTRA_FLAGS) -c -o $@ $< -I/usr/include/tirpc
 
 .PHONY: mpi-rockstar
 mpi-rockstar: $(MPI_ROCKSTAR)

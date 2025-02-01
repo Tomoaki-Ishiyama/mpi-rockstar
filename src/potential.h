@@ -21,7 +21,7 @@ struct potential {
 };
 
 void compute_kinetic_energy(struct potential *po, int64_t num_po,
-                            float *vel_cen, float *pos_cen);
+                            float *vel_cen, float *pos_cen, float scale_now);
 void compute_potential(struct potential *po, int64_t num_po);
 
 #endif /* _POTENTIAL_H_ */

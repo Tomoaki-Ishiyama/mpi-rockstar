@@ -192,10 +192,10 @@ void compute_potential(struct potential *po, int64_t num_po) {
 }
 
 void compute_kinetic_energy(struct potential *po, int64_t num_po,
-                            float *vel_cen, float *pos_cen) {
+                            float *vel_cen, float *pos_cen, float scale_now) {
     int64_t i, j;
-    double  dv = 0, conv_const = 0.5 * SCALE_NOW / Gc;
-    double  z1     = 1.0 / SCALE_NOW;
+    double  dv = 0, conv_const = 0.5 * scale_now / Gc;
+    double  z1     = 1.0 / scale_now;
     double  hubble = 100.0 * hubble_scaling(z1 - 1.0);
     for (i = 0; i < num_po; i++) {
         if (po[i].ke < 0)
@@ -203,7 +203,7 @@ void compute_kinetic_energy(struct potential *po, int64_t num_po,
         po[i].ke = dv = 0;
         for (j = 0; j < 3; j++) {
             dv = po[i].pos[j + 3] - vel_cen[j] +
-                 hubble * SCALE_NOW * (po[i].pos[j] - pos_cen[j]);
+                 hubble * scale_now * (po[i].pos[j] - pos_cen[j]);
             po[i].ke += dv * dv;
         }
         po[i].ke *= conv_const;
