@@ -86,13 +86,14 @@ output additional halo properties such as the inertia tensor.
 
 # Acknowledgements 
 
-This work has been supported by IAAR Research
-Support Program in Chiba University Japan, MEXT/JSPS KAKENHI (Grant
-Number JP23H04002), MEXT as ``Program for Promoting Researches on the
-Supercomputer Fugaku'' (JPMXP1020230406 and JPMXP1020230407), and JICFuS.  Numerical
-computations were carried out on the supercomputer Fugaku provided by
-the RIKEN Center for Computational Science (Project ID: hp230173, and
-hp240184).
+This work has been supported by IAAR Research Support Program in Chiba
+University Japan, MEXT/JSPS KAKENHI (Grant Number JP23H04002), MEXT as
+``Program for Promoting Researches on the Supercomputer Fugaku''
+(JPMXP1020230406 and JPMXP1020230407), and JICFuS.  This work was
+partially supported by the Sasakawa Scientific Research Grant from The
+Japan Science Society.  Numerical computations were carried out on the
+supercomputer Fugaku provided by the RIKEN Center for Computational
+Science (Project ID: hp230173, and hp240184).
 
 
 # References
