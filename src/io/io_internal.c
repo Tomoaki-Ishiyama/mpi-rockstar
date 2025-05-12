@@ -26,7 +26,19 @@ void fill_binary_header(struct binary_output_header *bh, int64_t snap,
     bh->particle_mass = PARTICLE_MASS;
     snprintf(bh->rockstar_version, VERSION_MAX_SIZE, "%s", ROCKSTAR_VERSION);
     bh->format_revision = HALO_FORMAT_REVISION;
-}
+
+    /* additional output flag */
+    bh->add_flag = 0;
+#ifdef OUTPUT_NFW_CHI2
+    bh->add_flag |= 1;
+#endif
+#ifdef OUTPUT_INTERMEDIATE_AXIS
+    bh->add_flag |= 2;
+#endif
+#ifdef OUTPUT_INERTIA_TENSOR
+    bh->add_flag |= 4;
+#endif
+  }
 
 void read_binary_header_config(struct binary_output_header *bh) {
     SCALE_NOW     = bh->scale;

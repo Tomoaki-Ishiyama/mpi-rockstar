@@ -63,7 +63,7 @@ void load_buffer(void *buffer, struct halo *halos, int64_t to_read,
 
 void write_hdf5_dataset(hid_t hid, char *dataid, hid_t type,
                         hsize_t rank, hsize_t *dims, void *data) {
-    hid_t HDF_DataspaceID = check_H5Screate_simple(rank, dims, NULL); 
+    hid_t HDF_DataspaceID = check_H5Screate_simple(rank, dims, NULL);
     hid_t HDF_DatasetID   = check_H5Dcreate(hid, dataid, type, HDF_DataspaceID);
 
     check_H5Dwrite(HDF_DatasetID, type, data);
@@ -173,11 +173,9 @@ void read_hdf5_halos(hid_t HDF_FileID, struct halo *halos,
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].vmax) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
 
-#ifdef OUTPUT_RVMAX
     read_hdf5_dataset(HDF_GroupID, "VmaxRadius", H5T_NATIVE_FLOAT, buffer_float);
     load_buffer(buffer_float, halos, num_halos,
                 (char *) &(halos[0].rvmax) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
-#endif
 
 #ifdef OUTPUT_NFW_CHI2
     read_hdf5_dataset(HDF_GroupID, "NFWChi2", H5T_NATIVE_FLOAT, buffer_float);
@@ -685,7 +683,7 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
     int64_t                     i, j, num_write, num_particles;
     int64_t                     offset, id;
     int64_t                    *ids, *p_start;
-    int                        *to_write; 
+    int                        *to_write;
     struct binary_output_header bheader;
     hid_t                       HDF_FileID, HDF_FileID_Part, HDF_GroupID;
     hsize_t                     dims1[1], dims3[2], dims6[2], dims_part[1];
@@ -815,12 +813,10 @@ void output_hdf5(int64_t id_offset, int64_t snap, int64_t chunk,
     add_hdf5_attribute(HDF_GroupID, "Vmax", "km/s (physical, peculiar)",
                        "Maximum circular velocity");
 
-#ifdef OUTPUT_RVMAX
     set_buffer(buffer_float, to_write, (char *) &(halos[0].rvmax) - (char *) (halos), 1, H5T_NATIVE_FLOAT);
     write_hdf5_dataset(HDF_GroupID, "VmaxRadius", H5T_NATIVE_FLOAT, 1, dims1, buffer_float);
     add_hdf5_attribute(HDF_GroupID, "VmaxRadius", "kpc/h (comoving)",
                        "Radius where circular velocity is maximum");
-#endif
 
 #ifdef OUTPUT_NFW_CHI2
     set_buffer(buffer_float, to_write, (char *) &(halos[0].chi2) - (char *) (halos), 1, H5T_NATIVE_FLOAT);

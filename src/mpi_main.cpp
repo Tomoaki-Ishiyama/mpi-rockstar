@@ -1873,7 +1873,7 @@ void check_config( const int my_rank){
 
   if( PARALLEL_IO != 1){
     if(my_rank == 0){
-      fprintf( stderr, "PARALLLE_IO must be 1\n");
+      fprintf( stderr, "PARALLEL_IO must be 1\n");
     }
     exitMPI();
   }

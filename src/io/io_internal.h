@@ -22,8 +22,9 @@ struct binary_output_header {
     int64_t  particle_type;
     int32_t  format_revision;
     char     rockstar_version[VERSION_MAX_SIZE];
+    int32_t  add_flag;
     char     unused[BINARY_HEADER_SIZE - (sizeof(char) * VERSION_MAX_SIZE) -
-                (sizeof(float) * 12) - sizeof(int32_t) - (sizeof(int64_t) * 6)];
+                (sizeof(float) * 12) - (sizeof(int32_t) * 2) - (sizeof(int64_t) * 6)];
 };
 
 void fill_binary_header(struct binary_output_header *bh, int64_t snap,

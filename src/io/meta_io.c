@@ -508,7 +508,7 @@ void get_outlist_filename(char *buffer, int maxlen, int64_t snap,
     }
     else{
       snprintf(buffer, maxlen, "%s/out_%" PRId64 ".list", OUTBASE, snap);
-      out = strlen(buffer);      
+      out = strlen(buffer);
     }
 
 }
@@ -609,14 +609,14 @@ char *gen_merger_catalog(int64_t snap, int64_t chunk, struct halo *halos,
 #endif
 #ifdef OUTPUT_INTERMEDIATE_AXIS
             ,
-            th->A_I[0], th->A_I[1], th->A_I[2], 
+            th->A_I[0], th->A_I[1], th->A_I[2],
             th->A2_I[0], th->A2_I[1], th->A2_I[2]
 #endif
 #ifdef OUTPUT_INERTIA_TENSOR
             ,
-            th->inertia_tensor[0], th->inertia_tensor[1], th->inertia_tensor[2], 
-            th->inertia_tensor[3], th->inertia_tensor[4], th->inertia_tensor[5], 
-            th->inertia_tensor2[0], th->inertia_tensor2[1], th->inertia_tensor2[2], 
+            th->inertia_tensor[0], th->inertia_tensor[1], th->inertia_tensor[2],
+            th->inertia_tensor[3], th->inertia_tensor[4], th->inertia_tensor[5],
+            th->inertia_tensor2[0], th->inertia_tensor2[1], th->inertia_tensor2[2],
             th->inertia_tensor2[3], th->inertia_tensor2[4], th->inertia_tensor2[5]
 #endif
 	   );
@@ -661,9 +661,8 @@ void output_merger_catalog(int64_t snap, int64_t chunk, int64_t location,
     MPI_File_close(&mfh);
     MPI_Info_free(&info);
   }
-    
+
   free(cat);
 
 
 }
-

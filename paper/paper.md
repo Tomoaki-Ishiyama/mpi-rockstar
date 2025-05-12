@@ -84,6 +84,59 @@ processes in a hybrid way using MPI and OpenMP.  As new functions to
 the original Rockstar code, MPI-Rockstar supports HDF5 as an output format and can
 output additional halo properties such as the inertia tensor.
 
+
+# Parallelization 
+
+As a process parallelization, the original Rockstar divides a
+simulation box by the number of parallel processes and assigns each
+sub-box to each process.  Then, each process performs 3D
+Friends-of-Friends (FoF) to find overdense regions, and FoF halos
+across processes are linked by communicating boundary
+regions. Rockstar then performs the subhalo finding for each FoF halo
+using 6D phase space information.  Data communications between
+multiple processes are performed by one-to-one communications using
+sockets.  As a result, many sockets (file descriptors) are issued
+simultaneously in the case of analysis with many processes, complicating
+analysis on modern supercomputers because the number of file
+descriptors issued simultaneously is normally limited. 
+
+In MPI-Rockstar, we replaced all socket communications in the original
+Rockstar with Message Passing Interface (MPI) communications, while
+maintaining compatibility with the analysis results. Rather than
+simply using MPI one-to-one communication, we changed the order of
+communication and computation to utilize collective communications and
+to run efficiently on large supercomputers. Furthermore, we
+parallelized MPI-Rockstar in a hybrid way, where thread
+parallelization is implemented within each process using OpenMP.  The
+subhalo finding is parallelized not only on a process level but also
+on a thread level, improving the overall performance of MPI-Rockstar.
+This hybrid parallel design also reduces the risk of per-process
+out-of-memory compared with a flat-MPI configuration.
+
+The below figure shows a strong scaling of MPI-Rockstar using up to 1,024
+nodes (48 CPU cores per node) on supercomputer Fugaku.  The horizontal
+and vertical axes represent the number of computational nodes and the
+time taken for the halo and subhalo finding of one snapshot,
+respectively.  The blue and green curves show the strong scaling for simulations with
+4096<sup>3</sup> particles in a 2 Gpc/h box and with 2560<sup>3</sup>
+particles in a 400 Mpc/h box, respectively The redshift of the
+snapshot analyzed was 2.0. 
+We measured the code's performance using 2 MPI
+processes per node and 24 OpenMP threads per process.
+This choice gives an optimal configulation for these snapshots,
+considering the balance between the computation and I/O time.
+The parallel efficiency is excellent, 
+~90% for both the 4096<sup>3</sup> box from 256 to 1024 nodes 
+and the 2560<sup>3</sup> box from 256 to 1024 nodes.
+Thanks to the communication optimization and hybrid parallelization,
+MPI-Rockstar could run up to three times faster than the original
+Rockstar when compared in the same execution environment.  We confirm
+that MPI-Rockstar can analyze 2 trillion particle simulations on
+16,384 nodes (786,432 CPU cores) of Fugaku.
+
+![Strong scaling of MPI-Rockstar](./scale.png)
+
+
 # Acknowledgements 
 
 This work has been supported by IAAR Research Support Program in Chiba

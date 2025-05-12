@@ -16,16 +16,19 @@ struct halo {
     float   min_pos_err, min_vel_err, min_bulkvel_err;
 
 #ifdef OUTPUT_INTERMEDIATE_AXIS
+  // header->add_flag |= 2;
   float A_I[3];
   float A2_I[3];
 #endif
 
 #ifdef OUTPUT_INERTIA_TENSOR
+  // header->add_flag |= 4;
   float inertia_tensor[6]; // xx, yy, zz, xy, yz, zx
   float inertia_tensor2[6]; // xx, yy, zz, xy, yz, zx
 #endif
 
 #ifdef OUTPUT_NFW_CHI2
+  // header->add_flag |= 1;
   float chi2;
 #endif
 
