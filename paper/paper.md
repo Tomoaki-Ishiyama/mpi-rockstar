@@ -111,7 +111,10 @@ parallelization is implemented within each process using OpenMP.  The
 subhalo finding is parallelized not only on a process level but also
 on a thread level, improving the overall performance of MPI-Rockstar.
 This hybrid parallel design also reduces the risk of per-process
-out-of-memory compared with a flat-MPI configuration.
+out-of-memory compared with a flat-MPI configuration. 
+The below figure illustrates this parallelization storategy. 
+
+![Parallelization storategy](./parallelization.png)
 
 The below figure shows a strong scaling of MPI-Rockstar using up to 1,024
 nodes (48 CPU cores per node) on supercomputer Fugaku.  The horizontal
