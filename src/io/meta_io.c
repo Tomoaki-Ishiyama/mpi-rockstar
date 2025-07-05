@@ -29,6 +29,7 @@
 #include "io_internal_hdf5.h"
 #include "io_arepo.h"
 #include "io_gadget4.h"
+#include "io_gadget2_hdf5.h"
 #endif /* ENABLE_HDF5 */
 
 char **snapnames  = NULL;
@@ -149,10 +150,21 @@ void read_particles(char *filename) {
         load_particles(filename, &p, &num_p);
     else if (!strncasecmp(FILE_FORMAT, "GADGET4", 7)) {
 #ifdef ENABLE_HDF5
+		strstr(filename, ".hdf5") || strcat(filename, ".hdf5");
         load_particles_gadget4(filename, &p, &num_p);
         gadget = 1;
 #else
         fprintf(stderr, "[Error] GADGET4 needs HDF5 support.  Recompile Rockstar "
+                        "using \"make with_hdf5\".\n");
+        exit(1);
+#endif
+	} else if (!strncasecmp(FILE_FORMAT, "GADGET2_HDF5", 12)) {
+#ifdef ENABLE_HDF5
+		strstr(filename, ".hdf5") || strcat(filename, ".hdf5");
+        load_particles_gadget2_hdf5(filename, &p, &num_p);
+        gadget = 1;
+#else
+        fprintf(stderr, "[Error] GADGET2_HDF5 needs HDF5 support.  Recompile Rockstar "
                         "using \"make with_hdf5\".\n");
         exit(1);
 #endif
