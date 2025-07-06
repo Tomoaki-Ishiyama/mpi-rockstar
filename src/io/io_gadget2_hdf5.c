@@ -185,28 +185,28 @@ void load_particles_gadget2_hdf5(char *filename, struct particle **p, int64_t *n
     BOX_SIZE  = gadget2_readheader_double(HDF_Header, filename, "BoxSize");
     BOX_SIZE *= GADGET2_LENGTH_CONVERSION;
 
-    uint64_t npart[GADGET2_NTYPES], npart_total[GADGET2_NTYPES];
+    uint64_t npart[GADGET2_NTYPES], npart_total[GADGET2_NTYPES], npart_total_hi[GADGET2_NTYPES];
     float    massTable[GADGET2_NTYPES];
 
     gadget2_readheader_array(HDF_Header, filename, "NumPart_ThisFile",
                              H5T_NATIVE_UINT64, npart);
     gadget2_readheader_array(HDF_Header, filename, "NumPart_Total",
                              H5T_NATIVE_UINT64, npart_total);
+	gadget2_readheader_array(HDF_Header, filename, "NumPart_Total_HighWord",
+                         	 H5T_NATIVE_UINT64, npart_total_hi);
     gadget2_readheader_array(HDF_Header, filename, "MassTable", H5T_NATIVE_FLOAT,
                              massTable);
 
-    TOTAL_PARTICLES = (int64_t)npart_total[GADGET2_DM_PARTTYPE];
+    uint64_t TOTAL_PARTICLES = npart_total[GADGET2_DM_PARTTYPE]+(npart_total_hi[GADGET2_DM_PARTTYPE] << 32);
 
     H5Gclose(HDF_Header);
     H5Gclose(HDF_Header);
 
-    if (!PARTICLE_MASS) {
-      PARTICLE_MASS = massTable[GADGET2_DM_PARTTYPE] * GADGET2_MASS_CONVERSION;
+	PARTICLE_MASS = massTable[GADGET2_DM_PARTTYPE] * GADGET2_MASS_CONVERSION;
 
-      if (RESCALE_PARTICLE_MASS)
-          PARTICLE_MASS =
-              Om * CRITICAL_DENSITY * pow(BOX_SIZE, 3) / TOTAL_PARTICLES;
-    }
+	if (RESCALE_PARTICLE_MASS) {
+		PARTICLE_MASS = Om * CRITICAL_DENSITY * pow(BOX_SIZE, 3) / TOTAL_PARTICLES;
+	}
 
     AVG_PARTICLE_SPACING = cbrt(PARTICLE_MASS / (Om * CRITICAL_DENSITY));
 
@@ -232,14 +232,16 @@ void load_particles_gadget2_hdf5(char *filename, struct particle **p, int64_t *n
     char buffer[100];
     snprintf(buffer, 100, "PartType%" PRId64, GADGET2_DM_PARTTYPE);
 
-    if (GADGET2_ID_BYTES == 8)
+    if (GADGET2_ID_BYTES == 8) {
         gadget2_readdataset_ID_uint64(
             HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
             (char *)&(p[0][0].id) - (char *)(p[0]), 1);
-    else if (GADGET2_ID_BYTES == 4)
+	}
+    else if (GADGET2_ID_BYTES == 4) {
         gadget2_readdataset_ID_uint32(
             HDF_FileID, filename, buffer, "ParticleIDs", *p + (*num_p), to_read,
             (char *)&(p[0][0].id) - (char *)(p[0]), 1);
+    }
     else {
         fprintf(stderr, "[Error] Unrecognized GADGET2_ID_BYTES:%d\n", (int) GADGET2_ID_BYTES);
         exit(1);
