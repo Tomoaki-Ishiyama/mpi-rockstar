@@ -217,10 +217,9 @@ void load_particles_gadget4(char *filename, struct particle **p, int64_t *num_p)
     H5Gclose(HDF_Header);
     H5Gclose(HDF_Parameters);
 
-    if (!PARTICLE_MASS) {
-      PARTICLE_MASS = massTable[GADGET4_DM_PARTTYPE] * GADGET4_MASS_CONVERSION;
+	PARTICLE_MASS = massTable[GADGET4_DM_PARTTYPE] * GADGET4_MASS_CONVERSION;
 
-      if (RESCALE_PARTICLE_MASS)
+      if (RESCALE_PARTICLE_MASS) {
           PARTICLE_MASS =
               Om * CRITICAL_DENSITY * pow(BOX_SIZE, 3) / TOTAL_PARTICLES;
     }
