@@ -200,7 +200,6 @@ void load_particles_gadget2_hdf5(char *filename, struct particle **p, int64_t *n
     uint64_t TOTAL_PARTICLES = npart_total[GADGET2_DM_PARTTYPE]+(npart_total_hi[GADGET2_DM_PARTTYPE] << 32);
 
     H5Gclose(HDF_Header);
-    H5Gclose(HDF_Header);
 
 	PARTICLE_MASS = massTable[GADGET2_DM_PARTTYPE] * GADGET2_MASS_CONVERSION;
 
