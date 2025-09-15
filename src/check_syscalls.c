@@ -228,7 +228,7 @@ size_t check_fwrite(void *ptr, size_t size, size_t nitems, FILE *stream) {
 }
 
 void *check_mmap_file(char *filename, char mode, int64_t *length) {
-    FILE       *tf;
+    FILE       *tf = NULL;
     int         flags = MAP_SHARED, prot = PROT_READ;
     struct stat ts;
     if (mode == 'r')

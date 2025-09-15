@@ -514,7 +514,7 @@ void decide_chunks_for_memory_balance(const int chunks[],
                     " sample particles available for %" PRId64
                     " writers; at least %" PRId64
                     " samples are required to compute domain bounds.\n",
-                    num_all_samples, NUM_WRITERS,
+                    (int64_t)num_all_samples, (int64_t)NUM_WRITERS,
                     (int64_t)NUM_WRITERS);
         }
         exit(2);
