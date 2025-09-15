@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <hdf5.h> /* HDF5 required */
 #include <inttypes.h>
+#include "../error.h"
 
 hid_t check_H5Fopen(char *filename, unsigned flags) {
     hid_t HDF_FileID = H5Fopen(filename, flags, H5P_DEFAULT);

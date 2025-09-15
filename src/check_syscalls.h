@@ -2,6 +2,7 @@
 #define CHECK_SYSCALLS_H
 #include <stdio.h>
 #include <stdlib.h>
+#include "error.h"
 #include <inttypes.h>
 #include <sys/types.h>
 

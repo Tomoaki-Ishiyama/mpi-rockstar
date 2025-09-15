@@ -46,6 +46,11 @@ integer(GADGET4_DM_PARTTYPE, 1);
 real(TIPSY_LENGTH_CONVERSION, 1.0);
 real(TIPSY_VELOCITY_CONVERSION, 1.0);
 
+// Conversion parameters for PKDGRAV3 lightcone particle format
+real(PKDGRAV3LCP_POS_SCALE, 1);
+real(PKDGRAV3LCP_POS_SHIFT, 0);
+real(PKDGRAV3LCP_VEL_SCALE, 1);
+
 integer(PARALLEL_IO, 1);
 string(PARALLEL_IO_SERVER_ADDRESS, "auto");
 string(PARALLEL_IO_SERVER_PORT, "auto");
@@ -120,7 +125,7 @@ real(BOX_SIZE, 250); // In Mpc/h
 integer(OUTPUT_LEVELS, 0);
 real3(DUMP_PARTICLES, "0 0 0");
 
-string(ROCKSTAR_CONFIG_FILENAME, "");
+string(CONFIG_FILENAME, "");
 real(AVG_PARTICLE_SPACING, 0); // Auto-generated
 integer(SINGLE_SNAP, 0);
 

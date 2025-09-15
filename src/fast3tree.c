@@ -58,6 +58,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "error.h"
 #include <string.h>
 #include <math.h>
 #include <inttypes.h>
@@ -933,7 +934,7 @@ void _fast3tree_maxmin_rebuild(struct tree3_node *n) {
 void *_fast3tree_check_realloc(void *ptr, size_t size, char *reason) {
     void *res = realloc(ptr, size);
     if ((res == NULL) && (size > 0)) {
-        fprintf(stderr, "[Error] Failed to allocate memory (%s)!\n", reason);
+        fprintf(stderr, "[Rockstar error] Failed to allocate memory (%s)!\n", reason);
         exit(1);
     }
     return res;

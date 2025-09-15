@@ -1,0 +1,28 @@
+[build-system]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "Cython",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pympirockstar"
+version = "0.0.0"
+description = "Python wrapper for MPI-Rockstar"
+requires-python = ">=3.8"
+
+[tool.setuptools]
+packages = ["pympirockstar"]
+
+[tool.setuptools.package-dir]
+pympirockstar = "."
+
+[tool.setuptools.cmdclass]
+build_ext = "build.build_ext"
+
+[[tool.setuptools.ext-modules]]
+name = "pympirockstar._rockstar"
+sources = ["_rockstar.pyx"]
+language = "c++"
+

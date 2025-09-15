@@ -7,6 +7,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 #include "read_config.h"
+#include "../error.h"
 
 void add_to_string_array(char ***array, char *string, size_t length,
                          int num_entries) {
@@ -151,6 +152,7 @@ inline static void trim(char **a, char **b) {
 }
 
 void load_config(struct configfile *c, char *filename) {
+    
     char  buffer[1024];
     FILE *input;
     char *key_start, *key_end;
@@ -161,8 +163,7 @@ void load_config(struct configfile *c, char *filename) {
     if (!input) {
         c->num_entries = 0;
         return;
-    }
-
+    } 
     int totaln_config = 0;
     char *file_format = NULL;
 
@@ -187,26 +188,30 @@ void load_config(struct configfile *c, char *filename) {
         add_to_string_array(&(c->keys), key_start, key_end - key_start + 1,
                             c->num_entries);
 
-	if( !strncasecmp( c->keys[c->num_entries], "TOTAL_PARTICLES", 15)){
-	  totaln_config = 1;
-	}
+        if( !strncasecmp( c->keys[c->num_entries], "TOTAL_PARTICLES", 15)){
+        totaln_config = 1;
+        }
 
         add_to_string_array(&(c->values), val_start, val_end - val_start + 1,
                             c->num_entries);
         add_to_int_array(&(c->touched), c->num_entries, 0);
 
-	if( !strncasecmp( c->keys[c->num_entries], "FILE_FORMAT", 11)){
-	  file_format = c->values[c->num_entries];
-	}
+        if( !strncasecmp( c->keys[c->num_entries], "FILE_FORMAT", 11)){
+        file_format = c->values[c->num_entries];
+        }
 
         c->num_entries++;
     }
     fclose(input);
-
+    if (file_format == NULL) {
+        fprintf(stderr, "[Error] FILE_FORMAT is not set in the config file %s\n", filename);
+        exit(1);
+    }
     if( !strncasecmp(file_format, "KYF", 3) && !totaln_config){
       fprintf(stderr, "[Error] TOTAL_PARTICLES is not set\n");
       exit(1);
     }
+
 
 }
 

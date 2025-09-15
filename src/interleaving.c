@@ -215,7 +215,7 @@ void check_bgroup_sanity(int64_t num_sets, int64_t *set_sizes,
             if (groups[j].next == -1)
                 break;
         if (j == l) {
-            fprintf(stderr, "[Error] Bgroup sanity test failed!\n");
+            fprintf(stderr, "[Rockstar error] Bgroup sanity test failed!\n");
             assert(0);
         }
         j = l;

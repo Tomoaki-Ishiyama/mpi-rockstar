@@ -11,8 +11,10 @@
 #include <cstdarg>
 #include <cstddef>
 #include <ctime>
+#include <cstdio>
 #include <sys/stat.h>
 
+#include "error.h"
 extern "C" {
 #include "config_vars.h"
 #include "check_syscalls.h"
@@ -35,6 +37,10 @@ extern "C" {
 #include "bitarray.h"
 #include "version.h"
 }
+
+#include "mpi_rockstar.h"
+
+#include "mpi_rockstar.h"
 
 #define CLIENT_DEBUG 0
 FILE  *profile_out = NULL;
@@ -81,9 +87,9 @@ template <typename T> T *reallocate(T *ptr, size_t num_elements) {
     const auto res = static_cast<T *>(std::realloc(ptr, size));
     if (res == nullptr) {
         const auto size_in_mib = static_cast<double>(size) / (1024 * 1024);
-        fprintf(stderr, "[Error] Failed to allocate %.2f MiB of memory!\n",
+        fprintf(stderr, "[Rockstar error] Failed to allocate %.2f MiB of memory!\n",
                 size_in_mib);
-        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+        exit(1);
     }
     return res;
 }
@@ -172,19 +178,19 @@ void check_num_writers(void) {
         int factors[3] = {0};
         //MPI_Dims_create(NUM_WRITERS, 3, factors);
 	createDivision( NUM_WRITERS, factors);
-        if ((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) {
+        if (((factors[0] < 2) || (factors[1] < 2) || (factors[2] < 2)) && (PERIODIC)) {
             fprintf(stderr,
-                    "[Error] NUM_WRITERS should be the product of at least "
+                    "[Rockstar error] NUM_WRITERS should be the product of at least "
                     "three factors larger than 1 for periodic boundary "
                     "conditions to be enabled!\n");
             fprintf(stderr,
-                    "[Error] (Currently, NUM_WRITERS = %" PRId64
+                    "[Rockstar error] (Currently, NUM_WRITERS = %" PRId64
                     " = %d x %d x %d)\n",
                     NUM_WRITERS, factors[0], factors[1], factors[2]);
             fprintf(stderr,
-                    "[Error] Please adjust NUM_WRITERS or set PERIODIC=0 "
+                    "[Rockstar error] Please adjust NUM_WRITERS or set PERIODIC=0 "
                     "in the config file.\n");
-            MPI_Abort(MPI_COMM_WORLD, 1);
+            exit(1);
         }
     }
 }
@@ -278,11 +284,11 @@ void sync_config() {
     if (my_rank == 0) {
         if ((BOX_SIZE < OVERLAP_LENGTH * 5) && PERIODIC) {
             fprintf(stderr,
-                    "[Error] Box size too small (%f) relative to overlap "
+                    "[Rockstar error] Box size too small (%f) relative to overlap "
                     "length "
                     "(%f)!\n",
                     BOX_SIZE, OVERLAP_LENGTH);
-            MPI_Abort(MPI_COMM_WORLD, 1);
+            exit(1);
         }
     }
 }
@@ -400,6 +406,18 @@ void align_domain_particles(int      axis, const float (*all_samples)[3],
         return;
     }
 
+    if (num_particles < chunks[axis]) {
+        int my_rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+        if (my_rank == 0) {
+            fprintf(stderr,
+                    "[Rockstar error] Only %" PRId64
+                    " sample particles available for %d chunks along axis %d.\n",
+                    num_particles, chunks[axis], axis);
+        }
+        exit(2);
+    }
+
     std::sort(particle_indices, particle_indices + num_particles,
               //[all_samples = all_samples, axis = axis](int64_t a, int64_t b) {
               [all_samples, axis](int64_t a, int64_t b) {
@@ -488,6 +506,19 @@ void decide_chunks_for_memory_balance(const int chunks[],
                   MPI_COMM_WORLD);
     auto num_all_samples =
         calc_displs(recv_counts, NUM_WRITERS, recv_displs) / 3;
+
+    if (num_all_samples < NUM_WRITERS) {
+        if (my_rank == 0) {
+            fprintf(stderr,
+                    "[Rockstar error] Only %" PRId64
+                    " sample particles available for %" PRId64
+                    " writers; at least %" PRId64
+                    " samples are required to compute domain bounds.\n",
+                    num_all_samples, NUM_WRITERS,
+                    (int64_t)NUM_WRITERS);
+        }
+        exit(2);
+    }
     auto all_samples = allocate<float[3]>(num_all_samples);
 
     MPI_Allgatherv(local_samples, num_to_send, MPI_FLOAT, all_samples,
@@ -527,7 +558,7 @@ void decide_writer_bounds(float (*writer_bounds)[6], const int my_rank) {
     decide_chunks_for_memory_balance(chunks, writer_bounds);
 
     if( my_rank == 0){
-      fprintf( stderr, "#chunks=(%d,%d,%d)\n", chunks[0], chunks[1], chunks[2]);
+        if (CLIENT_DEBUG) fprintf( stderr, "#chunks=(%d,%d,%d)\n", chunks[0], chunks[1], chunks[2]);
     }
 }
 
@@ -1534,9 +1565,18 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
         int64_t time_middle = time(NULL);
         set_bp_chunk(my_rank);
         int64_t time_end = time(NULL);
-        if (CLIENT_DEBUG)
+        if (CLIENT_DEBUG){
             fprintf(stderr, "Found %" PRId64 " fofs in chunk %" PRId64 "\n",
                     num_all_fofs, my_rank);
+            
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " PARTICLE_MASS: %f\n", my_rank, PARTICLE_MASS);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " BOX_SIZE: %f\n", my_rank, BOX_SIZE);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " AVG_PARTICLE_SPACING: %f\n", my_rank, AVG_PARTICLE_SPACING);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " num_p: %" PRId64 "\n", my_rank, num_p);
+            fprintf(stderr, "find_halos: my_rank %" PRId64 " num_all_fofs: %" PRId64 "\n", my_rank, num_all_fofs);
+        }
+
+
         if (profile_out) {
             fprintf(profile_out,
                     "[Prof] S%" PRId64 ",C%" PRId64 " %" PRId64 "s: %" PRId64
@@ -1840,34 +1880,28 @@ void init_mpi(int argc, char *argv[]) {
 }
 
 
-void exitMPI(){
-
-  MPI_Finalize();
-  exit(1);
-
-}
-
 
 void check_config( const int my_rank){
 
   if(my_rank == 0){
 
-    fprintf( stderr, "#The_number_of_threads= %d \n", get_max_threads());
+    if (CLIENT_DEBUG) fprintf( stderr, "#The_number_of_threads= %d \n", get_max_threads());
 
 #ifdef OUTPUT_RVMAX
-    fprintf( stderr, "#OUTPUT_RVMAX on\n");
+    if (CLIENT_DEBUG) fprintf( stderr, "#OUTPUT_RVMAX on\n");
+    
 #endif
 
 #ifdef OUTPUT_INTERMEDIATE_AXIS
-    fprintf( stderr, "#OUTPUT_INTERMEDIATE_AXIS on\n");
+    if (CLIENT_DEBUG) fprintf( stderr, "#OUTPUT_INTERMEDIATE_AXIS on\n");
 #endif
 
 #ifdef OUTPUT_INERTIA_TENSOR
-    fprintf( stderr, "#OUTPUT_INERTIA_TENSOR on\n");
+    if (CLIENT_DEBUG) fprintf( stderr, "#OUTPUT_INERTIA_TENSOR on\n");
 #endif
 
 #ifdef OUTPUT_NFW_CHI2
-    fprintf( stderr, "#OUTPUT_NFW_CHI2 on\n");
+    if (CLIENT_DEBUG) fprintf( stderr, "#OUTPUT_NFW_CHI2 on\n");
 #endif
 
   }
@@ -1876,14 +1910,49 @@ void check_config( const int my_rank){
     if(my_rank == 0){
       fprintf( stderr, "PARALLEL_IO must be 1\n");
     }
-    exitMPI();
+    exit(1);
   }
 
 }
 
 
 
-void mpi_main(int argc, char *argv[]) {
+void read_config_and_input(int argc, char **argv) {
+
+    int64_t i, snap = -1, did_config = 0;
+
+    srand(1);
+
+    for (i = 1; i < argc - 1; i++) {
+        if (!strcmp("-c", argv[i])) {
+            do_config(argv[i + 1]);
+            i++;
+            did_config = 1;
+        }
+    }
+    if (!did_config)
+        do_config(NULL);
+    if (strlen(SNAPSHOT_NAMES))
+        read_input_names(SNAPSHOT_NAMES, &snapnames, &NUM_SNAPS);
+    if (strlen(BLOCK_NAMES))
+        read_input_names(BLOCK_NAMES, &blocknames, &NUM_BLOCKS);
+
+    if (snap > -1) {
+      STARTING_SNAP = snap;
+      SINGLE_SNAP   = 1;
+    }
+
+}
+
+
+
+extern "C" void rockstar_mpi_main(int argc, char *argv[]) {
+    mpi_main(argc, argv);
+}
+
+void mpi_main(int argc, char *argv[]){
+
+    read_config_and_input(argc, argv);
 
     char    buffer[1024];
     int64_t reload_parts = 0;
@@ -1896,12 +1965,14 @@ void mpi_main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
+    #ifndef MPI_ROCKSTAR_LIBRARY
     if (my_rank==0 && argc < 2) {
         printf("MPI-Rockstar Halo Finder, Version %s\n", ROCKSTAR_VERSION);
         printf("(C) See the README file for redistribution details.\n");
         printf("Usage: %s [-c config]\n", argv[0]);
         exit(1);
     }
+    #endif
 
     NUM_WRITERS = num_procs;
     NUM_READERS = (NUM_BLOCKS > num_procs) ? num_procs : NUM_BLOCKS;
@@ -1993,41 +2064,40 @@ void mpi_main(int argc, char *argv[]) {
     writer_bounds = reallocate(writer_bounds, 0);
 
     timed_output("[Finished]\n");
+
+#ifndef DO_CONFIG_MPI
     MPI_Finalize();
+#endif
+    
 }
 
 
 
 
+#ifndef MPI_ROCKSTAR_LIBRARY
 int main(int argc, char **argv) {
 
-    int64_t i, snap = -1, did_config = 0;
 
-    srand(1);
 #ifdef DO_CONFIG_MPI
     init_mpi( argc, argv);
 #endif
 
-    for (i = 1; i < argc - 1; i++) {
-        if (!strcmp("-c", argv[i])) {
-            do_config(argv[i + 1]);
-            i++;
-            did_config = 1;
-        }
+    try {
+        mpi_main(argc, argv);
+    } catch (const rockstar_error &err) {
+#ifdef DO_CONFIG_MPI
+        MPI_Finalize();
+#endif
+        fprintf(stderr, "Rockstar error %d at %s:%d\n", err.code, err.file, err.line);
+        return err.code;
     }
-    if (!did_config)
-        do_config(NULL);
-    if (strlen(SNAPSHOT_NAMES))
-        read_input_names(SNAPSHOT_NAMES, &snapnames, &NUM_SNAPS);
-    if (strlen(BLOCK_NAMES))
-        read_input_names(BLOCK_NAMES, &blocknames, &NUM_BLOCKS);
 
-    if (snap > -1) {
-      STARTING_SNAP = snap;
-      SINGLE_SNAP   = 1;
-    }
-    mpi_main(argc, argv);
+
+#ifdef DO_CONFIG_MPI
+    MPI_Finalize();
+#endif
 
     return 0;
 
 }
+#endif /* MPI_ROCKSTAR_LIBRARY */

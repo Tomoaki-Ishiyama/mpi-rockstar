@@ -1,3 +1,5 @@
+#include "error.h"
+
 void factor_3(int64_t in, int64_t *factors) {
     int64_t i, n = 0;
     for (i = ceil(fabs(cbrt(in))); i > 0 && n < 2; i--)
@@ -32,7 +34,7 @@ void divide_projection(struct projection *proj, int64_t pieces, float *places) {
     }
     if (n < pieces) {
         print_time();
-        fprintf(stderr, "[Warning] Projection failed; reverting to equal "
+        fprintf(stderr, "[Rockstar warning] Projection failed; reverting to equal "
                         "volume divisions.\n");
         for (; n < pieces; n++)
             places[n] = places[n - 1] +
@@ -172,10 +174,10 @@ void decide_chunks_by_script() {
             (i != n) || (port != clients[n + NUM_READERS].port)) {
             fprintf(
                 stderr,
-                "[Error] Received invalid format from load balance script!\n");
-            fprintf(stderr, "[Error] Offending line: %s", buffer);
+                "[Rockstar error] Received invalid format from load balance script!\n");
+            fprintf(stderr, "[Rockstar error] Offending line: %s", buffer);
             fprintf(stderr,
-                    "[Error] Expected: %" PRId64
+                    "[Rockstar error] Expected: %" PRId64
                     " %s %d min_x min_y min_z max_x max_y max_z",
                     n, clients[n + NUM_READERS].address,
                     clients[n + NUM_READERS].port);
@@ -183,11 +185,11 @@ void decide_chunks_by_script() {
         }
         for (i = 0; i < 6; i++)
             if (bounds[i] < 0 || bounds[i] > BOX_SIZE) {
-                fprintf(stderr, "[Error] Received invalid format from load "
+                fprintf(stderr, "[Rockstar error] Received invalid format from load "
                                 "balance script!\n");
-                fprintf(stderr, "[Error] Offending line: %s", buffer);
+                fprintf(stderr, "[Rockstar error] Offending line: %s", buffer);
                 fprintf(stderr,
-                        "[Error] Bounds must be within the range 0 to %f\n",
+                        "[Rockstar error] Bounds must be within the range 0 to %f\n",
                         BOX_SIZE);
                 exit(1);
             }
@@ -333,7 +335,7 @@ void load_balance(void) {
 
             else {
                 fprintf(stderr,
-                        "[Error] Client protocol error! (%s) (%" PRId64 ")\n",
+                        "[Rockstar error] Client protocol error! (%s) (%" PRId64 ")\n",
                         cmd, i - NUM_READERS);
                 shutdown_clients();
                 exit(0);

@@ -3,3 +3,9 @@ mpi-rockstar_hdf5
 find_parents
 *.o
 *.~
+pympirockstar/build/
+pympirockstar/*.c
+pympirockstar/*.so
+pympirockstar/*.cpp
+pympirockstar/__pycache__/
+pympirockstar/*.py[co]
