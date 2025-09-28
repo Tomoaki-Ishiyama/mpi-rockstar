@@ -38,7 +38,7 @@ MPI_ROCKSTAR_LIB  = $(MPI_ROCKSTAR_CORE) mpi_main_lib.o
 MPI_ROCKSTAR_HDF5     = $(MPI_ROCKSTAR) io/io_internal_hdf5.o
 MPI_ROCKSTAR_LIB_HDF5 = $(MPI_ROCKSTAR_LIB) io/io_internal_hdf5.o
 
-FIND_PARENTS = find_parents.o io/stringparse.o check_syscalls.o
+FIND_PARENTS = find_parents.o io/stringparse.o check_syscalls.o error.o
 
 *.o: *.h Makefile*
 
@@ -77,7 +77,7 @@ _mpi-rockstar_hdf5: $(MPI_ROCKSTAR_HDF5)
 
 .PHONY: find_parents
 find_parents: $(FIND_PARENTS)
-	$(CC) $(CFLAGS) -o ../$@ $^ -lm
+	$(CC) $(CFLAGS) -o ../$@ $^ -lm -lstdc++
 
 clean:
 	rm -f *.o *~ io/*.o io/*~ ../libmpi_rockstar.a ../libmpi_rockstar_hdf5.a
