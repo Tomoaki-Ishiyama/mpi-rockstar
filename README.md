@@ -170,7 +170,7 @@ Out/
   0002/ for processes [8-11]
   0003/ for processes [12-15]
 ```
-**Note that each sub-directory is made automatically.***
+**Note that each sub-directory is made automatically.**
 
 **`OUTLIST_PARALLEL`, `OUTPUT_SUBDIR`, `SNAPSHOT_SUBDIR_DIGITS`, `FILES_PER_SUBDIR_OUTPUT` and `SUBDIR_DIGITS_OUTPUT` can work concurrently. In this case, sub-sub-directories are made.**
 
