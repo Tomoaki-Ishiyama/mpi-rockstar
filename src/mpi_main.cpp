@@ -1650,23 +1650,6 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
         if (check_bgc2_snap(snap) || STRICT_SO_MASSES) {
             timed_output("Generating BGC2 files/SO Masses...\n");
 
-            // p[0..num_p] are local particles not belonging to any halo
-            // p[num_p..num_p + num_additional_p] are halo particles
-            // total_num_p = num_p
-            //             + # of particles in halos within my bounds
-            int64_t total_num_p = num_p;
-            for (int64_t i = 0; i < num_halos; i++) {
-                int64_t j;
-                for (j = 0; j < 3; j++) {
-                    if (halos[i].pos[j] < writer_bounds[my_rank][j] ||
-                        halos[i].pos[j] > writer_bounds[my_rank][j + 3])
-                        break;
-                }
-                if (j == 3)
-                    total_num_p += halos[i].num_p;
-            }
-            // The sum of total_num_p for all procs should equal TOTAL_PARTICLES
-
 #if 1
 	    for( int i=0; i<(num_p+num_additional_p); i++){
 	      wrap_into_box(p[i].pos);
