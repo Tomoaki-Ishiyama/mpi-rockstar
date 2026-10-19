@@ -834,7 +834,7 @@ void transfer_bparticles(int64_t my_rank, float (*writer_bounds)[6]) {
     timed_output("Transferring boundary particles between writers...\n");
 }
 
-void distribute_halos(float (*writer_bounds)[6]) {
+void distribute_halos(int64_t my_rank, float (*writer_bounds)[6]) {
     auto halo_counts = allocate<int>(NUM_WRITERS);
     clear_counts(halo_counts, NUM_WRITERS);
     auto send_part_counts = allocate<int>(NUM_WRITERS);
@@ -854,7 +854,7 @@ void distribute_halos(float (*writer_bounds)[6]) {
                 halo_counts[i] += tag_halo_as_in_bounds(halos + j);
         }
         for (int64_t j = 0; j < num_halos; j++) {
-            if (halos[j].flags & TAGGED_FLAG) {
+            if ((halos[j].flags & TAGGED_FLAG) && i != my_rank) {
                 send_part_counts[i] += halos[j].num_p;
             }
         }
@@ -872,11 +872,13 @@ void distribute_halos(float (*writer_bounds)[6]) {
                 send_complete_halos.emplace_back(halos[j], extra_info[j]);
                 index_conversion[j] = halo_index - h_start;
 
-                send_complete_halos[halo_index].h.p_start =
-                    send_particles.size();
-                send_particles.insert(send_particles.end(),
-                                      p + halos[j].p_start,
-                                      p + halos[j].p_start + halos[j].num_p);
+                if (i != my_rank) {
+                    send_complete_halos[halo_index].h.p_start =
+                        send_particles.size();
+                    send_particles.insert(
+                        send_particles.end(), p + halos[j].p_start,
+                        p + halos[j].p_start + halos[j].num_p);
+                }
             }
         }
 
@@ -915,9 +917,15 @@ void distribute_halos(float (*writer_bounds)[6]) {
     }
     recv_complete_halos = reallocate(recv_complete_halos, 0);
 
+    // Halo particles received from other processes are stored in p[num_p..]
+    int64_t cur_p  = num_p;
     int64_t hstart = 0;
     for (int64_t i = 0; i < NUM_WRITERS; i++) {
         for (auto j = hstart; j < hstart + halo_counts[i]; j++) {
+            if (i != my_rank) {
+                halos[j].p_start = cur_p;
+                cur_p += halos[j].num_p;
+            }
             if (extra_info[j].child >= 0)
                 extra_info[j].child += hstart;
             if (extra_info[j].next_cochild >= 0)
@@ -937,12 +945,6 @@ void distribute_halos(float (*writer_bounds)[6]) {
     MPI_Type_free(&mpi_particle_type);
     std::vector<struct particle>().swap(send_particles);
     send_part_counts = reallocate(send_part_counts, 0);
-
-    int64_t cur_p = num_p;
-    for (int64_t i = 0; i < num_halos; i++) {
-        halos[i].p_start = cur_p;
-        cur_p += halos[i].num_p;
-    }
 }
 
 void distribute_sets(int my_rank) {
@@ -1590,7 +1592,7 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
             wrap_into_box(halos[i].pos);
         }
 
-        distribute_halos(writer_bounds);
+        distribute_halos(my_rank, writer_bounds);
 
         timed_output("Output halos...\n");
         int64_t id_offset = 0;
