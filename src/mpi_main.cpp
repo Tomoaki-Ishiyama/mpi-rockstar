@@ -1238,23 +1238,6 @@ int64_t collect_meta_fofs(struct fof *&meta_fofs) {
     }
     recv_ids = reallocate(recv_ids, 0);
 
-    // Collapse sent boundary FOFs
-    const auto num_local_fofs = num_all_fofs - num_bfofs;
-    num_p                     = all_fofs[num_local_fofs].particles - p;
-    num_bfofs                 = 0;
-    for (auto i = num_local_fofs; i < num_all_fofs; i++) {
-        if (all_fofs[i].num_p == 0)
-            continue;
-        if (all_fofs[i].particles != p + num_p) {
-            std::memmove(p + num_p, all_fofs[i].particles,
-                         sizeof(struct particle) * all_fofs[i].num_p);
-            all_fofs[num_local_fofs + num_bfofs] = all_fofs[i];
-        }
-        num_p += all_fofs[i].num_p;
-        ++num_bfofs;
-    }
-    num_all_fofs = num_local_fofs + num_bfofs;
-
     auto             mpi_particle_type  = create_mpi_particle_type();
     struct particle *recv_particles     = nullptr;
     auto             num_recv_particles = exchange_data(
