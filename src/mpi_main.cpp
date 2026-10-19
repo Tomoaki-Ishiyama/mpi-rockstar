@@ -892,26 +892,8 @@ void distribute_halos(float (*writer_bounds)[6]) {
     }
     index_conversion = reallocate(index_conversion, 0);
     extra_info       = reallocate(extra_info, 0);
-
-    // Store local particles not belonging to any halo in p[num_p]
-    const auto total_num_p = num_p;
-    auto       bitarray    = BIT_ALLOC(total_num_p);
-    BIT_ALL_CLEAR(bitarray, total_num_p);
-    for (int64_t i = 0; i < num_halos; i++) {
-        for (auto j = 0; j < halos[i].num_p; j++) {
-            BIT_SET(bitarray, halos[i].p_start + j);
-        }
-    }
-    halos     = reallocate(halos, 0);
-    num_halos = 0;
-    num_p     = 0;
-    for (int64_t i = 0; i < total_num_p; i++) {
-        if (!BIT_TST(bitarray, i)) {
-            p[num_p++] = p[i];
-        }
-    }
-    bitarray = reallocate(bitarray, 0);
-    p        = reallocate(p, num_p);
+    halos            = reallocate(halos, 0);
+    num_halos        = 0;
 
     auto mpi_halo_type = create_mpi_halo_type();
     auto mpi_ehi_type  = create_mpi_ehi_type();
