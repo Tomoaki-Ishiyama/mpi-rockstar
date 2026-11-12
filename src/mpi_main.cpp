@@ -834,7 +834,7 @@ void transfer_bparticles(int64_t my_rank, float (*writer_bounds)[6]) {
     timed_output("Transferring boundary particles between writers...\n");
 }
 
-void distribute_halos(float (*writer_bounds)[6]) {
+void distribute_halos(int64_t my_rank, float (*writer_bounds)[6]) {
     auto halo_counts = allocate<int>(NUM_WRITERS);
     clear_counts(halo_counts, NUM_WRITERS);
     auto send_part_counts = allocate<int>(NUM_WRITERS);
@@ -854,7 +854,7 @@ void distribute_halos(float (*writer_bounds)[6]) {
                 halo_counts[i] += tag_halo_as_in_bounds(halos + j);
         }
         for (int64_t j = 0; j < num_halos; j++) {
-            if (halos[j].flags & TAGGED_FLAG) {
+            if ((halos[j].flags & TAGGED_FLAG) && i != my_rank) {
                 send_part_counts[i] += halos[j].num_p;
             }
         }
@@ -872,11 +872,13 @@ void distribute_halos(float (*writer_bounds)[6]) {
                 send_complete_halos.emplace_back(halos[j], extra_info[j]);
                 index_conversion[j] = halo_index - h_start;
 
-                send_complete_halos[halo_index].h.p_start =
-                    send_particles.size();
-                send_particles.insert(send_particles.end(),
-                                      p + halos[j].p_start,
-                                      p + halos[j].p_start + halos[j].num_p);
+                if (i != my_rank) {
+                    send_complete_halos[halo_index].h.p_start =
+                        send_particles.size();
+                    send_particles.insert(
+                        send_particles.end(), p + halos[j].p_start,
+                        p + halos[j].p_start + halos[j].num_p);
+                }
             }
         }
 
@@ -892,26 +894,8 @@ void distribute_halos(float (*writer_bounds)[6]) {
     }
     index_conversion = reallocate(index_conversion, 0);
     extra_info       = reallocate(extra_info, 0);
-
-    // Store local particles not belonging to any halo in p[num_p]
-    const auto total_num_p = num_p;
-    auto       bitarray    = BIT_ALLOC(total_num_p);
-    BIT_ALL_CLEAR(bitarray, total_num_p);
-    for (int64_t i = 0; i < num_halos; i++) {
-        for (auto j = 0; j < halos[i].num_p; j++) {
-            BIT_SET(bitarray, halos[i].p_start + j);
-        }
-    }
-    halos     = reallocate(halos, 0);
-    num_halos = 0;
-    num_p     = 0;
-    for (int64_t i = 0; i < total_num_p; i++) {
-        if (!BIT_TST(bitarray, i)) {
-            p[num_p++] = p[i];
-        }
-    }
-    bitarray = reallocate(bitarray, 0);
-    p        = reallocate(p, num_p);
+    halos            = reallocate(halos, 0);
+    num_halos        = 0;
 
     auto mpi_halo_type = create_mpi_halo_type();
     auto mpi_ehi_type  = create_mpi_ehi_type();
@@ -933,9 +917,15 @@ void distribute_halos(float (*writer_bounds)[6]) {
     }
     recv_complete_halos = reallocate(recv_complete_halos, 0);
 
+    // Halo particles received from other processes are stored in p[num_p..]
+    int64_t cur_p  = num_p;
     int64_t hstart = 0;
     for (int64_t i = 0; i < NUM_WRITERS; i++) {
         for (auto j = hstart; j < hstart + halo_counts[i]; j++) {
+            if (i != my_rank) {
+                halos[j].p_start = cur_p;
+                cur_p += halos[j].num_p;
+            }
             if (extra_info[j].child >= 0)
                 extra_info[j].child += hstart;
             if (extra_info[j].next_cochild >= 0)
@@ -955,12 +945,6 @@ void distribute_halos(float (*writer_bounds)[6]) {
     MPI_Type_free(&mpi_particle_type);
     std::vector<struct particle>().swap(send_particles);
     send_part_counts = reallocate(send_part_counts, 0);
-
-    int64_t cur_p = num_p;
-    for (int64_t i = 0; i < num_halos; i++) {
-        halos[i].p_start = cur_p;
-        cur_p += halos[i].num_p;
-    }
 }
 
 void distribute_sets(int my_rank) {
@@ -1237,23 +1221,6 @@ int64_t collect_meta_fofs(struct fof *&meta_fofs) {
         counts[i] = total_num_p;
     }
     recv_ids = reallocate(recv_ids, 0);
-
-    // Collapse sent boundary FOFs
-    const auto num_local_fofs = num_all_fofs - num_bfofs;
-    num_p                     = all_fofs[num_local_fofs].particles - p;
-    num_bfofs                 = 0;
-    for (auto i = num_local_fofs; i < num_all_fofs; i++) {
-        if (all_fofs[i].num_p == 0)
-            continue;
-        if (all_fofs[i].particles != p + num_p) {
-            std::memmove(p + num_p, all_fofs[i].particles,
-                         sizeof(struct particle) * all_fofs[i].num_p);
-            all_fofs[num_local_fofs + num_bfofs] = all_fofs[i];
-        }
-        num_p += all_fofs[i].num_p;
-        ++num_bfofs;
-    }
-    num_all_fofs = num_local_fofs + num_bfofs;
 
     auto             mpi_particle_type  = create_mpi_particle_type();
     struct particle *recv_particles     = nullptr;
@@ -1625,7 +1592,7 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
             wrap_into_box(halos[i].pos);
         }
 
-        distribute_halos(writer_bounds);
+        distribute_halos(my_rank, writer_bounds);
 
         timed_output("Output halos...\n");
         int64_t id_offset = 0;
@@ -1649,23 +1616,6 @@ void find_halos(int64_t snap, int64_t my_rank, char *buffer,
 
         if (check_bgc2_snap(snap) || STRICT_SO_MASSES) {
             timed_output("Generating BGC2 files/SO Masses...\n");
-
-            // p[0..num_p] are local particles not belonging to any halo
-            // p[num_p..num_p + num_additional_p] are halo particles
-            // total_num_p = num_p
-            //             + # of particles in halos within my bounds
-            int64_t total_num_p = num_p;
-            for (int64_t i = 0; i < num_halos; i++) {
-                int64_t j;
-                for (j = 0; j < 3; j++) {
-                    if (halos[i].pos[j] < writer_bounds[my_rank][j] ||
-                        halos[i].pos[j] > writer_bounds[my_rank][j + 3])
-                        break;
-                }
-                if (j == 3)
-                    total_num_p += halos[i].num_p;
-            }
-            // The sum of total_num_p for all procs should equal TOTAL_PARTICLES
 
 #if 1
 	    for( int i=0; i<(num_p+num_additional_p); i++){
